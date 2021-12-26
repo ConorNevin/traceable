@@ -24,14 +24,14 @@ commands:
             - v6-gosrc-{{ .Branch }}-{{ checksum "go.sum" }}-{{ .Environment.CIRCLE_JOB }}
             - v6-gosrc-{{ .Branch }}-{{ checksum "go.sum" }}-
             - v6-gosrc-{{ .Branch }}-
-            - v6-gosrc-master-
+            - v6-gosrc-main-
           name: Restoring Source Cache
       - restore_cache:
           keys:
             - v6-gobin-{{ arch }}-{{ .Branch }}-{{ checksum "go.sum" }}-{{ .Environment.CIRCLE_JOB }}
             - v6-gobin-{{ arch }}-{{ .Branch }}-{{ checksum "go.sum" }}-
             - v6-gobin-{{ arch }}-{{ .Branch }}-
-            - v6-gobin-{{ arch }}-master-
+            - v6-gobin-{{ arch }}-main-
           name: Restoring Build Cache
 
   go-cache-save:
@@ -78,17 +78,6 @@ jobs:
             git status
             echo
             echo -e '\033[1;93m!!! "go fmt ./..." resulted in changes. Please run it locally and commit the changes.\e[0m'
-            echo
-            exit 1
-            fi
-      - run: go generate ./...
-      - run:
-          name: Check Generated Code
-          command: |
-            if [ ! -z "$(git status --porcelain)" ]; then
-            git status
-            echo
-            echo -e '\033[1;93m!!! "go generate ./..." resulted in changes. Please codegen locally and commit the changes.\e[0m'
             echo
             exit 1
             fi
