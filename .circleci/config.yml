@@ -101,8 +101,6 @@ jobs:
       - checkout:
           path: ~/project
       - go-install-deps
-      - go-install-tools:
-          tool: ginkgo
       - run:
           name: ginkgo
           command: ginkgo -r .
