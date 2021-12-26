@@ -16,24 +16,6 @@ commands:
       - go-cache-restore
       - go/mod-download
 
-  go-install-tools:
-    description: Install a specific Golang dev tool
-    parameters:
-      tool:
-        type: string
-        default: '"'  # matches everything by default
-      args:
-        type: string
-        default: ''
-    steps:
-      - run: |
-          cd ~/project
-          cat tools.go \
-            | grep "<< parameters.tool >>" \
-            | grep _ \
-            | awk -F'"' '{print $2}' \
-            | xargs -tI % go install << parameters.args >> %
-
   go-cache-restore:
     description: Restore the go mod & build cache.
     steps:
@@ -76,10 +58,6 @@ jobs:
           path: ~/project
       - run: sudo apt-get update && sudo apt install jq
       - go-install-deps
-      - go-install-tools:
-          tool: mockgen
-      - go-install-tools:
-          tool: interfacer
       - run: go mod verify
       - run: go mod tidy
       - run:
