@@ -102,8 +102,8 @@ jobs:
           path: ~/project
       - go-install-deps
       - run:
-          name: ginkgo
-          command: ginkgo -r .
+          name: go test
+          command: go test ./...
       - go-cache-save
 
 workflows:
