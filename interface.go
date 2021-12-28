@@ -7,8 +7,11 @@ import (
 )
 
 type Interface struct {
-	name    string
-	methods []Method
+	name       string
+	importPath string
+	methods    []Method
+
+	parser *parser
 }
 
 func (f *Interface) findInterfaces(n ast.Node) bool {
@@ -37,12 +40,14 @@ func (f *Interface) findInterfaces(n ast.Node) bool {
 			log.Fatalf("%s is an %T, not an interface,", typ, tspec.Type)
 		}
 
-		f.setMethods(itype)
+		if err := f.setMethods(itype); err != nil {
+			log.Fatal(err)
+		}
 	}
 	return false
 }
 
-func (f *Interface) setMethods(inter *ast.InterfaceType) {
+func (f *Interface) setMethods(inter *ast.InterfaceType) error {
 	log.Printf("setting methods (%d)", len(inter.Methods.List))
 	for _, fl := range inter.Methods.List {
 		typ, ok := fl.Type.(*ast.FuncType)
@@ -50,14 +55,14 @@ func (f *Interface) setMethods(inter *ast.InterfaceType) {
 			log.Printf("unexpected type: %T", typ)
 		}
 
-		args := make([]Type, len(typ.Params.List))
-		for i, param := range typ.Params.List {
-			args[i] = newType(param)
+		args, err := f.parser.parseFieldList(f.importPath, typ.Params.List)
+		if err != nil {
+			return err
 		}
 
-		results := make([]Type, len(typ.Results.List))
-		for i, res := range typ.Results.List {
-			results[i] = newType(res)
+		results, err := f.parser.parseFieldList(f.importPath, typ.Results.List)
+		if err != nil {
+			return err
 		}
 
 		f.methods = append(f.methods, Method{
@@ -66,4 +71,6 @@ func (f *Interface) setMethods(inter *ast.InterfaceType) {
 			returns: results,
 		})
 	}
+
+	return nil
 }

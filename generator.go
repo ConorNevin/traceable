@@ -9,9 +9,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
+)
+
+const (
+	openTracingPackagePath = "github.com/opentracing/opentracing-go"
+	openTracingPackageName = "opentracing"
 )
 
 type Generator struct {
@@ -89,8 +95,14 @@ func (g *Generator) Generate(typeName string) {
 	importPath := g.importPath(typeName)
 	log.Printf("import path %s", importPath)
 
+	if _, ok := g.packageMap[openTracingPackagePath]; !ok {
+		g.packageMap[openTracingPackagePath] = openTracingPackageName
+	}
+
 	g.Interface = Interface{
-		name: getStructName(typeName),
+		name:       getStructName(typeName),
+		importPath: importPath,
+		parser:     &parser{imports: make(map[string]ImportedPackage)},
 	}
 	for _, p := range g.pkgs {
 		if p.importPath != importPath {
@@ -98,9 +110,16 @@ func (g *Generator) Generate(typeName string) {
 		}
 
 		for _, file := range p.files {
+			if err := g.Interface.parser.parseImports(file.file); err != nil {
+				log.Fatal(err)
+			}
 			// Set the state for this run of the walker.
 			if file.file != nil {
 				ast.Inspect(file.file, g.Interface.findInterfaces)
+			}
+
+			for _, is := range g.Interface.parser.imports {
+				g.packageMap[is.Path] = is.Name
 			}
 		}
 	}
@@ -137,12 +156,12 @@ func (g *Generator) printImports() {
 	}
 
 	g.Printf("import(\n")
-	for _, pkg := range g.pkgs {
-		if g.OutputPackagePath == pkg.importPath {
+	for importPath := range g.packageMap {
+		if g.OutputPackagePath == importPath {
 			continue
 		}
 
-		g.Printf("\"%s\"\n", pkg.importPath)
+		g.Printf("\"%s\"\n", importPath)
 	}
 	g.Printf(")\n")
 }
@@ -156,7 +175,9 @@ func (g *Generator) printStruct(typeName string) {
 	g.Printf("type Traced%s struct {\n", structName)
 	g.Printf("\tx ")
 
-	if (g.OutputPackagePath != "" && len(split) == 1) || importPath != "" {
+	log.Printf("import path: %s, output path: %s", importPath, g.OutputPackagePath)
+
+	if (g.OutputPackagePath != "" && len(split) == 1) && importPath != g.OutputPackagePath {
 		g.Printf(g.packageMap[importPath] + ".")
 	}
 
@@ -170,9 +191,11 @@ func (g *Generator) printMethods(typeName string) {
 	for _, m := range g.Interface.methods {
 		args := make([]string, len(m.args))
 		argNames := make([]string, len(m.args))
+		argList := make([]string, len(m.args))
 		for i, a := range m.args {
 			args[i] = a.String()
-			argNames[i] = a.name
+			argNames[i] = "a" + strconv.Itoa(i)
+			argList[i] = argNames[i] + " " + args[i]
 		}
 
 		returns := make([]string, len(m.returns))
@@ -188,7 +211,13 @@ func (g *Generator) printMethods(typeName string) {
 			returnStr = "(" + strings.Join(returns, ",") + ")"
 		}
 
-		g.Printf("func (t *Traced%s) %s(%s) %s {\n", structName, m.name, strings.Join(args, ","), returnStr)
+		g.Printf("func (t *Traced%s) %s(%s) %s {\n", structName, m.name, strings.Join(argList, ","), returnStr)
+		if m.acceptsContext() {
+			g.Printf("span, %[1]s := opentracing.StartSpanFromContext(%[1]s, \"%s.%s\")\n", m.contextArg(), structName, m.name)
+			g.Printf("defer func() {\n")
+			g.Printf("span.Finish()\n")
+			g.Printf("}()\n")
+		}
 		if len(m.returns) > 0 {
 			g.Printf("return ")
 		}
@@ -210,7 +239,7 @@ func (g *Generator) importPath(typeName string) string {
 func getStructName(typeName string) string {
 	idx := strings.IndexRune(typeName, '.')
 	if idx == -1 {
-		return ""
+		return typeName
 	}
 
 	return typeName[idx+1:]
