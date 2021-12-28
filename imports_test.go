@@ -13,6 +13,7 @@ func Test_createPackageMap(t *testing.T) {
 		wantPackage string
 	}{
 		{"standard library", "context", "context"},
+		{"third party", "golang.org/x/tools/present", "present"},
 	}
 
 	importPaths := make([]string, len(tests))
