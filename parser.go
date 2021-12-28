@@ -86,6 +86,17 @@ func (p *parser) parseType(pkg string, typ ast.Expr) (*Type, error) {
 		t.arrayLength = ln
 
 		return t, nil
+	case *ast.FuncType:
+		in, out, err := p.parseFunc(pkg, ft)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Type{
+			isFunc:        true,
+			funcArguments: in,
+			funcReturns:   out,
+		}, nil
 	case *ast.Ident:
 		var t Type
 		t.value = ft.Name
@@ -102,6 +113,25 @@ func (p *parser) parseType(pkg string, typ ast.Expr) (*Type, error) {
 		log.Fatalf("internal error: unexpected type: %T", typ)
 		return nil, nil
 	}
+}
+
+func (p *parser) parseFunc(pkg string, f *ast.FuncType) ([]*Parameter, []*Parameter, error) {
+	var in, out []*Parameter
+	var err error
+	if f.Params != nil {
+		in, err = p.parseFieldList(pkg, f.Params.List)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	if f.Results != nil {
+		out, err = p.parseFieldList(pkg, f.Results.List)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return in, out, nil
 }
 
 func (p *parser) parseImports(file *ast.File) error {

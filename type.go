@@ -15,11 +15,14 @@ func (p *Parameter) String() string {
 }
 
 type Type struct {
-	packageName string
-	value       string
-	isPointer   bool
-	isSlice     bool
-	isVariadic  bool
+	packageName   string
+	value         string
+	isPointer     bool
+	isSlice       bool
+	isVariadic    bool
+	isFunc        bool
+	funcArguments []*Parameter
+	funcReturns   []*Parameter
 
 	arrayLength int
 }
@@ -35,6 +38,25 @@ func (t Type) TypeName() string {
 
 func (t Type) String() string {
 	var s strings.Builder
+
+	if t.isFunc {
+		args := make([]string, len(t.funcArguments))
+		for i, p := range t.funcArguments {
+			args[i] = p.typ.String()
+		}
+
+		rets := make([]string, len(t.funcReturns))
+		for i, p := range t.funcReturns {
+			rets[i] = p.typ.String()
+		}
+		retStr := strings.Join(rets, ", ")
+		if len(rets) > 1 {
+			retStr = "(" + retStr + ")"
+		}
+
+		s.WriteString("func(" + strings.Join(args, ",") + ") " + retStr)
+		return s.String()
+	}
 
 	if t.isVariadic {
 		s.WriteString("...")

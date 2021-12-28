@@ -188,7 +188,7 @@ func (g *Generator) printStruct(typeName string) {
 
 func (g *Generator) printMethods(typeName string) {
 	structName := getStructName(typeName)
-	for _, m := range g.Interface.methods {
+	for i, m := range g.Interface.methods {
 		args := make([]string, len(m.args))
 		argNames := make([]string, len(m.args))
 		argList := make([]string, len(m.args))
@@ -223,6 +223,9 @@ func (g *Generator) printMethods(typeName string) {
 		}
 		g.Printf("t.x.%s(%s)\n", m.name, strings.Join(argNames, ","))
 		g.Printf("}\n")
+		if i != len(g.Interface.methods)-1 {
+			g.Printf("\n")
+		}
 	}
 }
 
