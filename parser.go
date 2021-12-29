@@ -86,6 +86,27 @@ func (p *parser) parseType(pkg string, typ ast.Expr) (*Type, error) {
 		t.arrayLength = ln
 
 		return t, nil
+	case *ast.ChanType:
+		t, err := p.parseType(pkg, ft.Value)
+		if err != nil {
+			return nil, err
+		}
+		t.isChan = true
+		switch ft.Dir {
+		case ast.SEND:
+			t.chanDir = ChanSend
+		case ast.RECV:
+			t.chanDir = ChanRecv
+		}
+
+		return t, nil
+	case *ast.Ellipsis:
+		t, err := p.parseType(pkg, ft.Elt)
+		if err != nil {
+			return nil, err
+		}
+		t.isVariadic = true
+		return t, nil
 	case *ast.FuncType:
 		in, out, err := p.parseFunc(pkg, ft)
 		if err != nil {
@@ -135,6 +156,7 @@ func (p *parser) parseFunc(pkg string, f *ast.FuncType) ([]*Parameter, []*Parame
 }
 
 func (p *parser) parseImports(file *ast.File) error {
+	p.imports = make(map[string]ImportedPackage)
 	var importPaths []string
 	for _, is := range file.Imports {
 		if is.Name != nil {
@@ -176,7 +198,10 @@ func (p *parser) parseImports(file *ast.File) error {
 				Duplicates: append(pkg.Duplicates, importPath),
 			}
 		} else {
-			p.imports[pkgName] = ImportedPackage{Path: importPath}
+			p.imports[pkgName] = ImportedPackage{
+				Name: pkgName,
+				Path: importPath,
+			}
 		}
 	}
 

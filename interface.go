@@ -10,16 +10,17 @@ type Interface struct {
 	name       string
 	importPath string
 	methods    []Method
-
-	parser *parser
+	imports    map[string]string
 }
 
-func (f *Interface) findInterfaces(n ast.Node) bool {
+func (g *Generator) findInterface(n ast.Node) bool {
 	inter, ok := n.(*ast.GenDecl)
 	if !ok || inter.Tok != token.TYPE {
 		// We only care about interfaces.
 		return true
 	}
+
+	name := g.Interface.name
 
 	typ := ""
 	for _, spec := range inter.Specs {
@@ -30,8 +31,8 @@ func (f *Interface) findInterfaces(n ast.Node) bool {
 
 		// Check if this is the interface we're looking for and
 		// skip if not.
-		if typ != f.name {
-			log.Printf("skipping %s (looking for %s)", typ, f.name)
+		if typ != name {
+			log.Printf("skipping %s (looking for %s)", typ, name)
 			continue
 		}
 
@@ -40,14 +41,17 @@ func (f *Interface) findInterfaces(n ast.Node) bool {
 			log.Fatalf("%s is an %T, not an interface,", typ, tspec.Type)
 		}
 
-		if err := f.setMethods(itype); err != nil {
+		if err := g.setMethods(itype); err != nil {
 			log.Fatal(err)
 		}
+
+		return false
 	}
+
 	return false
 }
 
-func (f *Interface) setMethods(inter *ast.InterfaceType) error {
+func (g *Generator) setMethods(inter *ast.InterfaceType) error {
 	log.Printf("setting methods (%d)", len(inter.Methods.List))
 	for _, fl := range inter.Methods.List {
 		typ, ok := fl.Type.(*ast.FuncType)
@@ -55,17 +59,17 @@ func (f *Interface) setMethods(inter *ast.InterfaceType) error {
 			log.Printf("unexpected type: %T", typ)
 		}
 
-		args, err := f.parser.parseFieldList(f.importPath, typ.Params.List)
+		args, err := g.parser.parseFieldList(g.Interface.importPath, typ.Params.List)
 		if err != nil {
 			return err
 		}
 
-		results, err := f.parser.parseFieldList(f.importPath, typ.Results.List)
+		results, err := g.parser.parseFieldList(g.Interface.importPath, typ.Results.List)
 		if err != nil {
 			return err
 		}
 
-		f.methods = append(f.methods, Method{
+		g.Interface.methods = append(g.Interface.methods, Method{
 			name:    fl.Names[0].Name,
 			args:    args,
 			returns: results,

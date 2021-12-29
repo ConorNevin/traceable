@@ -24,6 +24,9 @@ type Type struct {
 	funcArguments []*Parameter
 	funcReturns   []*Parameter
 
+	isChan  bool
+	chanDir ChanDir
+
 	arrayLength int
 }
 
@@ -39,6 +42,9 @@ func (t Type) TypeName() string {
 func (t Type) String() string {
 	var s strings.Builder
 
+	if t.isVariadic {
+		s.WriteString("...")
+	}
 	if t.isFunc {
 		args := make([]string, len(t.funcArguments))
 		for i, p := range t.funcArguments {
@@ -57,9 +63,15 @@ func (t Type) String() string {
 		s.WriteString("func(" + strings.Join(args, ",") + ") " + retStr)
 		return s.String()
 	}
-
-	if t.isVariadic {
-		s.WriteString("...")
+	if t.isChan {
+		switch t.chanDir {
+		case ChanSend:
+			s.WriteString("chan<- ")
+		case ChanRecv:
+			s.WriteString("<-chan ")
+		default:
+			s.WriteString("chan ")
+		}
 	}
 	if t.isSlice {
 		s.WriteString("[")
@@ -80,3 +92,10 @@ func (t Type) String() string {
 
 	return s.String()
 }
+
+type ChanDir uint8
+
+const (
+	ChanSend ChanDir = 1
+	ChanRecv ChanDir = 2
+)

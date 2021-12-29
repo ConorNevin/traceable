@@ -24,6 +24,7 @@ type Generator struct {
 	buf        bytes.Buffer
 	pkgs       map[string]*Package
 	packageMap map[string]string
+	parser     *parser
 
 	RootPackage       string
 	OutputPackagePath string
@@ -93,7 +94,6 @@ func (g *Generator) GenerateAll(types []string) {
 func (g *Generator) Generate(typeName string) {
 	log.Printf("generating for %s", typeName)
 	importPath := g.importPath(typeName)
-	log.Printf("import path %s", importPath)
 
 	if _, ok := g.packageMap[openTracingPackagePath]; !ok {
 		g.packageMap[openTracingPackagePath] = openTracingPackageName
@@ -102,26 +102,37 @@ func (g *Generator) Generate(typeName string) {
 	g.Interface = Interface{
 		name:       getStructName(typeName),
 		importPath: importPath,
-		parser:     &parser{imports: make(map[string]ImportedPackage)},
 	}
+	g.parser = &parser{imports: make(map[string]ImportedPackage)}
+
 	for _, p := range g.pkgs {
 		if p.importPath != importPath {
 			continue
 		}
 
 		for _, file := range p.files {
-			if err := g.Interface.parser.parseImports(file.file); err != nil {
+			if err := g.parser.parseImports(file.file); err != nil {
 				log.Fatal(err)
 			}
-			// Set the state for this run of the walker.
+
 			if file.file != nil {
-				ast.Inspect(file.file, g.Interface.findInterfaces)
+				ast.Inspect(file.file, g.findInterface)
 			}
 
-			for _, is := range g.Interface.parser.imports {
+			// If the interface type has not been populated, then we want to continue
+			// searching for it.
+			if g.Interface.methods == nil {
+				continue
+			}
+
+			for _, is := range g.parser.imports {
 				g.packageMap[is.Path] = is.Name
 			}
+
+			break
 		}
+
+		break
 	}
 
 	g.printHeader()
@@ -193,9 +204,14 @@ func (g *Generator) printMethods(typeName string) {
 		argNames := make([]string, len(m.args))
 		argList := make([]string, len(m.args))
 		for i, a := range m.args {
+			argName := "a" + strconv.Itoa(i)
+
 			args[i] = a.String()
-			argNames[i] = "a" + strconv.Itoa(i)
-			argList[i] = argNames[i] + " " + args[i]
+			argNames[i] = argName
+			if a.typ.isVariadic {
+				argNames[i] += "..."
+			}
+			argList[i] = argName + " " + args[i]
 		}
 
 		returns := make([]string, len(m.returns))

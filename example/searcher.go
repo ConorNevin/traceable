@@ -8,4 +8,6 @@ import (
 
 type Searcher interface {
 	Search(context.Context, string) error
+	SearchAll(context.Context, ...string) (chan<- string, error)
+	StoreAll(context.Context, <-chan string) error
 }

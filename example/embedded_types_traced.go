@@ -13,7 +13,7 @@ type TracedEmbedded struct {
 	x Embedded
 }
 
-func (t *TracedEmbedded) FunctionOne(a0 context.Context, a1 func(context.Context, io.Reader)) error {
+func (t *TracedEmbedded) FunctionOne(a0 context.Context, a1 func(context.Context, io.Reader) error) error {
 	span, a0 := opentracing.StartSpanFromContext(a0, "Embedded.FunctionOne")
 	defer func() {
 		span.Finish()
