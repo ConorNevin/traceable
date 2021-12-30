@@ -114,12 +114,10 @@ jobs:
           name: go test
           command: |
             go test -coverprofile=c.out ./...
-            go tool cover -html=c.out -o coverage.html
-            mv coverage.html /tmp/artifacts
       - run:
           name: coverage/upload
           command: |
-            goveralls  -coverprofile=coverage.out -service=circleci
+            goveralls  -coverprofile=c.out -service=circleci
       - go-cache-save
 
 workflows:
