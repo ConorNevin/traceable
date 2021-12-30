@@ -8,6 +8,7 @@ executors:
 
 orbs:
   go: circleci/go@1.7.0
+  coveralls: coveralls/coveralls@1.0.6
 
 commands:
   go-install-deps:
@@ -15,6 +16,24 @@ commands:
     steps:
       - go-cache-restore
       - go/mod-download
+
+  go-install-tools:
+    description: Install a specific Golang dev tool
+    parameters:
+      tool:
+        type: string
+        default: '"'  # matches everything by default
+      args:
+        type: string
+        default: ''
+    steps:
+      - run: |
+          cd ~/project
+          cat tools.go \
+            | grep "<< parameters.tool >>" \
+            | grep _ \
+            | awk -F'"' '{print $2}' \
+            | xargs -tI % go install << parameters.args >> %
 
   go-cache-restore:
     description: Restore the go mod & build cache.
@@ -90,9 +109,18 @@ jobs:
       - checkout:
           path: ~/project
       - go-install-deps
+      - go-install-tools:
+          tool: goveralls
       - run:
           name: go test
-          command: go test ./...
+          command: |
+            go test -coverprofile=c.out ./...
+            go tool cover -html=c.out -o coverage.html
+            mv coverage.html /tmp/artifacts
+      - run:
+          name: coverage/upload
+          command: |
+            goveralls  -coverprofile=coverage.out -service=circleci
       - go-cache-save
 
 workflows:
