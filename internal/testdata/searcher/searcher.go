@@ -1,10 +1,10 @@
-package example
+package searcher
 
 import (
 	"context"
 )
 
-//go:generate ../bin/traceable -type Searcher -output searcher_traced.go
+//go:generate ../../../bin/traceable -types Searcher -output searcher_traced.go
 
 type Stringer interface {
 	String() error

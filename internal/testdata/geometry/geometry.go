@@ -6,7 +6,7 @@ import (
 	"math"
 )
 
-//go:generate ../../../bin/traceable -type Geometry -output geometry_traced.go
+//go:generate ../../../bin/traceable -types Geometry -output geometry_traced.go
 
 type Geometry interface {
 	Area(context.Context) (float64, error)

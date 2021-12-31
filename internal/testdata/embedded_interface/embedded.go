@@ -1,4 +1,4 @@
-package example
+package embedded_interface
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-//go:generate ../bin/traceable -type Embedded -output embedded_types_traced.go
+//go:generate ../../../bin/traceable -types Embedded -output embedded_types_traced.go
 
 type Base interface {
 	FunctionOne(context.Context, func(context.Context, io.Reader) error) error

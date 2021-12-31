@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	typeNames = flag.String("type", "", "comma-separated list of type names; must be set")
+	typeNames = flag.String("types", "", "comma-separated list of type names; must be set")
 	output    = flag.String("output", "", "output file name; default srcdir/traced_<type>.go")
 )
 
