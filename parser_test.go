@@ -23,7 +23,7 @@ func Test_parser_parsePackage(t *testing.T) {
 			packages.NeedSyntax |
 			packages.NeedTypes,
 	}
-	pkgs, err := packages.Load(cfg, "github.com/ConorNevin/traceable/internal/testdata/geometry")
+	pkgs, err := packages.Load(cfg, "github.com/ConorNevin/traceable/internal/tests/geometry")
 	c.Assert(err, qt.IsNil)
 	c.Assert(pkgs, qt.HasLen, 1)
 

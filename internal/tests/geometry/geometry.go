@@ -18,7 +18,7 @@ type Circle struct {
 
 func (c *Circle) Area(_ context.Context) (float64, error) {
 	if c.radius < 0 {
-		return 0, fmt.Errorf("unable to calculate area for circle with size %d", c.radius)
+		return 0, fmt.Errorf("unable to calculate area for circle with size %.2f", c.radius)
 	}
 
 	return math.Pi * c.radius * c.radius, nil
