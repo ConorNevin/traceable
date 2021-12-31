@@ -124,10 +124,37 @@ jobs:
           path: report.xml
       - go-cache-save
 
+  test-generation:
+    working_directory: ~/project
+    executor:
+      name: golang
+    steps:
+      - checkout:
+          path: ~/project
+      - go-install-deps
+      - run:
+          name: build binary
+          command: make
+      - run:
+          name: regenerate examples
+          command: go generate ./internal/tests/...
+      - run:
+          name: check generated code
+          command: |
+            if [ ! -z "$(git status --porcelain)" ]; then
+            git status
+            echo
+            echo -e '\033[1;93m!!! "go generate ./internal/tests/..." resulted in changes. Please run it locally and commit the changes.\e[0m'
+            echo
+            exit 1
+            fi
 workflows:
   version: 2
   build:
     jobs:
       - lint
       - test
+      - test-generation:
+          requires:
+          - test
 
