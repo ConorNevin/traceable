@@ -76,6 +76,11 @@ func Test_Method_contextArg(t *testing.T) {
 		want   string
 	}{
 		{
+			name:   "does not accept context as an argument",
+			method: Method{},
+			want:   "",
+		},
+		{
 			name: "takes context as only argument",
 			method: Method{
 				args: []*Parameter{
