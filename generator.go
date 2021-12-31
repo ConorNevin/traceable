@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"go/ast"
-	"go/format"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"strings"
 
 	"golang.org/x/tools/go/packages"
+	"golang.org/x/tools/imports"
 )
 
 const (
@@ -109,7 +109,7 @@ func (g *Generator) Generate(typeName string) {
 
 // Format returns the gofmt-ed contents of the Generator's buffer.
 func (g *Generator) Format() []byte {
-	src, err := format.Source(g.buf.Bytes())
+	src, err := imports.Process("", g.buf.Bytes(), nil)
 	if err != nil {
 		// Should never happen, but can arise when developing this code.
 		// The user can compile the output to see the error.

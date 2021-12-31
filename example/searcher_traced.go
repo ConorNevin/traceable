@@ -4,6 +4,7 @@ package example
 
 import (
 	"context"
+
 	"github.com/opentracing/opentracing-go"
 )
 

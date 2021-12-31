@@ -4,9 +4,10 @@ package example
 
 import (
 	"context"
-	"github.com/opentracing/opentracing-go"
 	"io"
 	"net/http"
+
+	"github.com/opentracing/opentracing-go"
 )
 
 // TracedEmbedded is a traced implementation of Embedded
