@@ -102,6 +102,10 @@ jobs:
 
   test:
     working_directory: ~/project
+    parameters:
+      version:
+        type: string
+        default: "latest"
     docker:
       - image: cimg/go:<< parameters.version >>
     steps:
