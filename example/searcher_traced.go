@@ -12,6 +12,14 @@ type TracedSearcher struct {
 	x Searcher
 }
 
+func (t *TracedSearcher) One(a0 context.Context, a1 int, a2 int, a3 string) error {
+	span, a0 := opentracing.StartSpanFromContext(a0, "Searcher.One")
+	defer func() {
+		span.Finish()
+	}()
+	return t.x.One(a0, a1, a2, a3)
+}
+
 func (t *TracedSearcher) Search(a0 context.Context, a1 string) error {
 	span, a0 := opentracing.StartSpanFromContext(a0, "Searcher.Search")
 	defer func() {
@@ -34,4 +42,20 @@ func (t *TracedSearcher) StoreAll(a0 context.Context, a1 <-chan string) error {
 		span.Finish()
 	}()
 	return t.x.StoreAll(a0, a1)
+}
+
+func (t *TracedSearcher) StoreInterface(a0 context.Context, a1 Stringer) (int, error) {
+	span, a0 := opentracing.StartSpanFromContext(a0, "Searcher.StoreInterface")
+	defer func() {
+		span.Finish()
+	}()
+	return t.x.StoreInterface(a0, a1)
+}
+
+func (t *TracedSearcher) StoreMap(a0 context.Context, a1 map[int8]string) error {
+	span, a0 := opentracing.StartSpanFromContext(a0, "Searcher.StoreMap")
+	defer func() {
+		span.Finish()
+	}()
+	return t.x.StoreMap(a0, a1)
 }

@@ -1,6 +1,7 @@
 package traceable
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/importer"
@@ -10,10 +11,54 @@ import (
 	"path"
 	"strconv"
 	"strings"
+
+	"golang.org/x/tools/go/packages"
 )
 
 type parser struct {
-	imports map[string]ImportedPackage
+	imports            map[string]ImportedPackage
+	importedInterfaces map[string]map[string]*ast.InterfaceType
+
+	otherInterfaces map[string]map[string]*ast.InterfaceType
+}
+
+func (p *parser) parsePackage(pkg *packages.Package) (*Package, error) {
+	var interfaces []*Interface
+	for _, file := range pkg.Syntax {
+		is, err := p.parseFile(pkg.PkgPath, file)
+		if err != nil {
+			return nil, err
+		}
+
+		interfaces = append(interfaces, is...)
+	}
+
+	return &Package{
+		name:       pkg.Name,
+		importPath: pkg.PkgPath,
+		interfaces: interfaces,
+	}, nil
+}
+
+func (p *parser) parseFile(path string, f *ast.File) ([]*Interface, error) {
+	if err := p.parseImports(f); err != nil {
+		return nil, err
+	}
+
+	p.otherInterfaces[path] = getInterfaces(f)
+
+	var is []*Interface
+	for name, typ := range p.otherInterfaces[path] {
+		i, err := p.parseInterface(name, path, typ)
+		if err != nil {
+			return nil, err
+		}
+		is = append(is, i)
+
+		i.imports = p.imports
+	}
+
+	return is, nil
 }
 
 func (p *parser) parseFieldList(pkg string, fields []*ast.Field) ([]*Parameter, error) {
@@ -129,7 +174,36 @@ func (p *parser) parseType(pkg string, typ ast.Expr) (*Type, error) {
 		if !ok {
 			return nil, fmt.Errorf("unknown package %q", pkgName)
 		}
-		return &Type{packageName: pkg.Path, value: ft.Sel.String()}, nil
+		return &Type{packageName: pkg.Name, value: ft.Sel.String()}, nil
+	case *ast.MapType:
+		key, err := p.parseType(pkg, ft.Key)
+		if err != nil {
+			return nil, err
+		}
+		value, err := p.parseType(pkg, ft.Value)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Type{
+			mapKey:   key,
+			mapValue: value,
+			isMap:    true,
+		}, nil
+	case *ast.StarExpr:
+		t, err := p.parseType(pkg, ft.X)
+		if err != nil {
+			return nil, err
+		}
+		t.isPointer = true
+		return t, nil
+	case *ast.StructType:
+		if ft.Fields != nil && len(ft.Fields.List) > 0 {
+			return nil, errors.New("unable to handle non-empty unnamed structs")
+		}
+		return &Type{value: "struct{}"}, nil
+	case *ast.ParenExpr:
+		return p.parseType(pkg, ft.X)
 	default:
 		log.Fatalf("internal error: unexpected type: %T", typ)
 		return nil, nil
@@ -153,6 +227,90 @@ func (p *parser) parseFunc(pkg string, f *ast.FuncType) ([]*Parameter, []*Parame
 	}
 
 	return in, out, nil
+}
+
+func (p *parser) parseInterface(name, pkg string, f *ast.InterfaceType) (*Interface, error) {
+	i := Interface{name: name}
+	for _, f := range f.Methods.List {
+		switch v := f.Type.(type) {
+		case *ast.FuncType:
+			if n := len(f.Names); n != 1 {
+				return nil, fmt.Errorf("expected one name for interface %q, got %d", i.name, n)
+			}
+
+			m := Method{
+				name: f.Names[0].String(),
+			}
+
+			// if we already have a function with this name then we want
+			// this one to supersede it.
+			removeIdx := -1
+			for idx, im := range i.methods {
+				if im.name == m.name {
+					removeIdx = idx
+				}
+			}
+			if removeIdx != -1 {
+				i.methods = append(i.methods[:removeIdx], i.methods[removeIdx+1:]...)
+			}
+
+			var err error
+			m.args, m.returns, err = p.parseFunc(pkg, v)
+			if err != nil {
+				return nil, err
+			}
+
+			i.methods = append(i.methods, m)
+		case *ast.Ident:
+			embedType := p.otherInterfaces[pkg][v.String()]
+			if embedType == nil {
+				embedType = p.importedInterfaces[pkg][v.String()]
+			}
+
+			var embed *Interface
+			if embedType != nil {
+				var err error
+				embed, err = p.parseInterface(v.String(), pkg, embedType)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				if v.String() == "error" {
+					embed = &Interface{
+						name: "error",
+						methods: []Method{
+							{
+								name: "Error",
+								returns: []*Parameter{
+									{
+										typ: &Type{
+											value: "string",
+										},
+									},
+								},
+							},
+						},
+					}
+				} else {
+					return nil, fmt.Errorf("unknown embedded interface %s", v.String())
+				}
+			}
+
+			for _, m := range embed.methods {
+				if i.hasMethod(m) {
+					continue
+				}
+
+				i.methods = append(i.methods, m)
+			}
+		case *ast.SelectorExpr:
+			return nil, fmt.Errorf("unable to handle embedeed interface from another pkg")
+		default:
+			return nil, fmt.Errorf("unable to handle method of type %T", f.Type)
+		}
+	}
+
+	return &i, nil
 }
 
 func (p *parser) parseImports(file *ast.File) error {
@@ -206,4 +364,25 @@ func (p *parser) parseImports(file *ast.File) error {
 	}
 
 	return nil
+}
+
+func getInterfaces(f *ast.File) map[string]*ast.InterfaceType {
+	interfaces := make(map[string]*ast.InterfaceType)
+	ast.Inspect(f, func(n ast.Node) bool {
+		ts, ok := n.(*ast.TypeSpec)
+		if !ok {
+			return true
+		}
+
+		it, ok := ts.Type.(*ast.InterfaceType)
+		if !ok {
+			return false
+		}
+
+		log.Printf("found %s in %s", ts.Name.Name, f.Name.Name)
+		interfaces[ts.Name.Name] = it
+		return true
+	})
+
+	return interfaces
 }

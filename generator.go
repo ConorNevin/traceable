@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"go/ast"
 	"go/format"
-	"go/types"
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -34,8 +34,7 @@ type Generator struct {
 type Package struct {
 	name       string
 	importPath string
-	defs       map[*ast.Ident]types.Object
-	files      []*File
+	interfaces []*Interface
 }
 
 func (g *Generator) Printf(format string, args ...interface{}) {
@@ -60,24 +59,21 @@ func (g *Generator) ParsePackage(patterns []string) {
 
 func (g *Generator) addPackage(pkg *packages.Package) {
 	log.Printf("adding package \"%s\" (\"%s\")", pkg.Name, pkg.PkgPath)
-	p := &Package{
-		name:       pkg.Name,
-		importPath: pkg.PkgPath,
-		defs:       pkg.TypesInfo.Defs,
-		files:      make([]*File, len(pkg.Syntax)),
-	}
-
-	for i, file := range pkg.Syntax {
-		p.files[i] = &File{
-			file: file,
-			pkg:  p,
-		}
+	pp := &parser{
+		imports:            make(map[string]ImportedPackage),
+		importedInterfaces: make(map[string]map[string]*ast.InterfaceType),
+		otherInterfaces:    make(map[string]map[string]*ast.InterfaceType),
 	}
 
 	if g.pkgs == nil {
 		g.pkgs = make(map[string]*Package)
 	}
-	g.pkgs[pkg.PkgPath] = p
+
+	var err error
+	g.pkgs[pkg.PkgPath], err = pp.parsePackage(pkg)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if g.packageMap == nil {
 		g.packageMap = make(map[string]string)
@@ -93,46 +89,16 @@ func (g *Generator) GenerateAll(types []string) {
 
 func (g *Generator) Generate(typeName string) {
 	log.Printf("generating for %s", typeName)
-	importPath := g.importPath(typeName)
 
 	if _, ok := g.packageMap[openTracingPackagePath]; !ok {
 		g.packageMap[openTracingPackagePath] = openTracingPackageName
 	}
 
-	g.Interface = Interface{
-		name:       getStructName(typeName),
-		importPath: importPath,
-	}
-	g.parser = &parser{imports: make(map[string]ImportedPackage)}
-
-	for _, p := range g.pkgs {
-		if p.importPath != importPath {
-			continue
-		}
-
-		for _, file := range p.files {
-			if err := g.parser.parseImports(file.file); err != nil {
-				log.Fatal(err)
-			}
-
-			if file.file != nil {
-				ast.Inspect(file.file, g.findInterface)
-			}
-
-			// If the interface type has not been populated, then we want to continue
-			// searching for it.
-			if g.Interface.methods == nil {
-				continue
-			}
-
-			for _, is := range g.parser.imports {
-				g.packageMap[is.Path] = is.Name
-			}
-
+	for _, is := range g.pkgs[g.RootPackage].interfaces {
+		if is.name == typeName {
+			g.Interface = *is
 			break
 		}
-
-		break
 	}
 
 	g.printHeader()
@@ -174,6 +140,9 @@ func (g *Generator) printImports() {
 
 		g.Printf("\"%s\"\n", importPath)
 	}
+	for _, i := range g.Interface.imports {
+		g.Printf("\"%s\"\n", i.Path)
+	}
 	g.Printf(")\n")
 }
 
@@ -199,6 +168,10 @@ func (g *Generator) printStruct(typeName string) {
 
 func (g *Generator) printMethods(typeName string) {
 	structName := getStructName(typeName)
+
+	sort.Slice(g.Interface.methods, func(i, j int) bool {
+		return g.Interface.methods[i].name < g.Interface.methods[j].name
+	})
 	for i, m := range g.Interface.methods {
 		args := make([]string, len(m.args))
 		argNames := make([]string, len(m.args))

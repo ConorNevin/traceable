@@ -6,6 +6,7 @@ import (
 	"context"
 	"github.com/opentracing/opentracing-go"
 	"io"
+	"net/http"
 )
 
 // TracedEmbedded is a traced implementation of Embedded
@@ -19,6 +20,14 @@ func (t *TracedEmbedded) FunctionOne(a0 context.Context, a1 func(context.Context
 		span.Finish()
 	}()
 	return t.x.FunctionOne(a0, a1)
+}
+
+func (t *TracedEmbedded) FunctionThree(a0 context.Context, a1 []http.Request) error {
+	span, a0 := opentracing.StartSpanFromContext(a0, "Embedded.FunctionThree")
+	defer func() {
+		span.Finish()
+	}()
+	return t.x.FunctionThree(a0, a1)
 }
 
 func (t *TracedEmbedded) FunctionTwo(a0 context.Context, a1 io.Writer) error {

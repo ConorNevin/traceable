@@ -10,7 +10,17 @@ type Interface struct {
 	name       string
 	importPath string
 	methods    []Method
-	imports    map[string]string
+	imports    map[string]ImportedPackage
+}
+
+func (i Interface) hasMethod(m Method) bool {
+	for _, im := range i.methods {
+		if im.name == m.name {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (g *Generator) findInterface(n ast.Node) bool {
@@ -54,26 +64,28 @@ func (g *Generator) findInterface(n ast.Node) bool {
 func (g *Generator) setMethods(inter *ast.InterfaceType) error {
 	log.Printf("setting methods (%d)", len(inter.Methods.List))
 	for _, fl := range inter.Methods.List {
-		typ, ok := fl.Type.(*ast.FuncType)
-		if !ok {
-			log.Printf("unexpected type: %T", typ)
-		}
+		switch typ := fl.Type.(type) {
+		case *ast.FuncType:
+			args, err := g.parser.parseFieldList(g.Interface.importPath, typ.Params.List)
+			if err != nil {
+				return err
+			}
 
-		args, err := g.parser.parseFieldList(g.Interface.importPath, typ.Params.List)
-		if err != nil {
-			return err
-		}
+			results, err := g.parser.parseFieldList(g.Interface.importPath, typ.Results.List)
+			if err != nil {
+				return err
+			}
 
-		results, err := g.parser.parseFieldList(g.Interface.importPath, typ.Results.List)
-		if err != nil {
-			return err
+			g.Interface.methods = append(g.Interface.methods, Method{
+				name:    fl.Names[0].Name,
+				args:    args,
+				returns: results,
+			})
+		case *ast.Ident:
+		case *ast.SelectorExpr:
+		default:
+			log.Fatalf("unexpected type: %T", fl.Type)
 		}
-
-		g.Interface.methods = append(g.Interface.methods, Method{
-			name:    fl.Names[0].Name,
-			args:    args,
-			returns: results,
-		})
 	}
 
 	return nil

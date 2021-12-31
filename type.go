@@ -1,6 +1,7 @@
 package traceable
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -26,6 +27,9 @@ type Type struct {
 
 	isChan  bool
 	chanDir ChanDir
+
+	isMap            bool
+	mapKey, mapValue *Type
 
 	arrayLength int
 }
@@ -61,6 +65,10 @@ func (t Type) String() string {
 		}
 
 		s.WriteString("func(" + strings.Join(args, ",") + ") " + retStr)
+		return s.String()
+	}
+	if t.isMap {
+		s.WriteString(fmt.Sprintf("map[%s]%s", t.mapKey.String(), t.mapValue.String()))
 		return s.String()
 	}
 	if t.isChan {
