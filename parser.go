@@ -168,6 +168,11 @@ func (p *parser) parseType(pkg string, typ ast.Expr) (*Type, error) {
 		t.value = ft.Name
 
 		return &t, nil
+	case *ast.InterfaceType:
+		if ft.Methods != nil && len(ft.Methods.List) > 0 {
+			return nil, fmt.Errorf("can not handle non-empty unnamed interfaces")
+		}
+		return &Type{value: "interface{}"}, nil
 	case *ast.SelectorExpr:
 		pkgName := ft.X.(*ast.Ident).String()
 		pkg, ok := p.imports[pkgName]

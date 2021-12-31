@@ -53,6 +53,14 @@ func (t *TracedSearcher) StoreAll(a0 context.Context, a1 <-chan string) error {
 	return t.x.StoreAll(a0, a1)
 }
 
+func (t *TracedSearcher) StoreAnything(a0 context.Context, a1 interface{}) error {
+	span, a0 := opentracing.StartSpanFromContext(a0, "Searcher.StoreAnything")
+	defer func() {
+		span.Finish()
+	}()
+	return t.x.StoreAnything(a0, a1)
+}
+
 func (t *TracedSearcher) StoreInterface(a0 context.Context, a1 Stringer) (int, error) {
 	span, a0 := opentracing.StartSpanFromContext(a0, "Searcher.StoreInterface")
 	defer func() {

@@ -18,6 +18,7 @@ type Searcher interface {
 	StoreAll(context.Context, <-chan string) error
 	StoreMap(context.Context, map[int8]string) error
 	StoreInterface(context.Context, Stringer) (int, error)
+	StoreAnything(context.Context, interface{}) error
 	One(context.Context, int, int, string) error
 	Many(context.Context, map[int]string) Errors
 }
