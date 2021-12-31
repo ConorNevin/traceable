@@ -13,6 +13,14 @@ type TracedSearcher struct {
 	x Searcher
 }
 
+func (t *TracedSearcher) Many(a0 context.Context, a1 map[int]string) Errors {
+	span, a0 := opentracing.StartSpanFromContext(a0, "Searcher.Many")
+	defer func() {
+		span.Finish()
+	}()
+	return t.x.Many(a0, a1)
+}
+
 func (t *TracedSearcher) One(a0 context.Context, a1 int, a2 int, a3 string) error {
 	span, a0 := opentracing.StartSpanFromContext(a0, "Searcher.One")
 	defer func() {

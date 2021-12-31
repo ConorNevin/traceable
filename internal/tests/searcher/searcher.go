@@ -10,6 +10,8 @@ type Stringer interface {
 	String() error
 }
 
+type Errors []error
+
 type Searcher interface {
 	Search(context.Context, string) error
 	SearchAll(context.Context, ...string) (chan<- string, error)
@@ -17,4 +19,5 @@ type Searcher interface {
 	StoreMap(context.Context, map[int8]string) error
 	StoreInterface(context.Context, Stringer) (int, error)
 	One(context.Context, int, int, string) error
+	Many(context.Context, map[int]string) Errors
 }
