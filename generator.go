@@ -155,8 +155,6 @@ func (g *Generator) printStruct(typeName string) {
 	g.Printf("type Traced%s struct {\n", structName)
 	g.Printf("\tx ")
 
-	log.Printf("import path: %s, output path: %s", importPath, g.OutputPackagePath)
-
 	if (g.OutputPackagePath != "" && len(split) == 1) && importPath != g.OutputPackagePath {
 		g.Printf(g.packageMap[importPath] + ".")
 	}
