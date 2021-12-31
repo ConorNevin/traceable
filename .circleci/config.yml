@@ -102,8 +102,8 @@ jobs:
 
   test:
     working_directory: ~/project
-    executor:
-      name: golang
+    docker:
+      - image: cimg/go:<< parameters.version >>
     steps:
       - checkout:
           path: ~/project
@@ -153,7 +153,10 @@ workflows:
   build:
     jobs:
       - lint
-      - test
+      - test:
+          matrix:
+            parameters:
+              version: ["latest", "1.17", "1.16", "1.15", "1.14"]
       - test-generation:
           requires:
           - test
