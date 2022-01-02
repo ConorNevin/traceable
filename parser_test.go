@@ -8,6 +8,31 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+func Benchmark_parseFile(b *testing.B) {
+	c := qt.New(b)
+
+	pkgName := "internal/tests/performance/large"
+	cfg := &packages.Config{
+		Mode: packages.NeedName |
+			packages.NeedTypesInfo |
+			packages.NeedSyntax |
+			packages.NeedTypes,
+	}
+	pkgs, err := packages.Load(cfg, pkgName)
+	c.Assert(err, qt.IsNil)
+	c.Assert(pkgs, qt.HasLen, 1)
+
+	pp := &parser{
+		imports:            make(map[string]ImportedPackage),
+		importedInterfaces: make(map[string]map[string]*ast.InterfaceType),
+		otherInterfaces:    make(map[string]map[string]*ast.InterfaceType),
+	}
+
+	for n := 0; n < b.N; n++ {
+		_, _ = pp.parsePackage(pkgs[0])
+	}
+}
+
 func Test_parser_parsePackage(t *testing.T) {
 	pp := &parser{
 		imports:            make(map[string]ImportedPackage),

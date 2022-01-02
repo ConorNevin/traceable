@@ -334,16 +334,16 @@ func (p *parser) parseInterface(name, pkg string, f *ast.InterfaceType) (*Interf
 					return nil, err
 				}
 			} else {
-				path := embeddedPkg.Path
-				embeddedparser, err := p.createNewParser(path)
+				embeddedPath := embeddedPkg.Path
+				embeddedParser, err := p.createNewParser(embeddedPath)
 				if err != nil {
 					return nil, err
 				}
 
-				if embeddedIfaceType = embeddedparser.importedInterfaces[path][sel]; embeddedIfaceType == nil {
-					return nil, fmt.Errorf("unknown embedded interface %s.%s", path, sel)
+				if embeddedIfaceType = embeddedParser.importedInterfaces[embeddedPath][sel]; embeddedIfaceType == nil {
+					return nil, fmt.Errorf("unknown embedded interface %s.%s", embeddedPath, sel)
 				}
-				embeddedIface, err = embeddedparser.parseInterface(sel, path, embeddedIfaceType)
+				embeddedIface, err = embeddedParser.parseInterface(sel, embeddedPath, embeddedIfaceType)
 				if err != nil {
 					return nil, err
 				}
