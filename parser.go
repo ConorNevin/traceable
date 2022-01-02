@@ -167,6 +167,15 @@ func (p *parser) parseType(pkg string, typ ast.Expr) (*Type, error) {
 		var t Type
 		t.value = ft.Name
 
+		if ft.IsExported() {
+			maybeImportedPkg, ok := p.imports[pkg]
+			if ok {
+				pkg = maybeImportedPkg.Name
+			}
+
+			t.pkg = pkg
+		}
+
 		return &t, nil
 	case *ast.InterfaceType:
 		if ft.Methods != nil && len(ft.Methods.List) > 0 {
@@ -179,7 +188,7 @@ func (p *parser) parseType(pkg string, typ ast.Expr) (*Type, error) {
 		if !ok {
 			return nil, fmt.Errorf("unknown package %q", pkgName)
 		}
-		return &Type{packageName: pkg.Name, value: ft.Sel.String()}, nil
+		return &Type{pkg: pkg.Path, value: ft.Sel.String()}, nil
 	case *ast.MapType:
 		key, err := p.parseType(pkg, ft.Key)
 		if err != nil {
@@ -309,7 +318,44 @@ func (p *parser) parseInterface(name, pkg string, f *ast.InterfaceType) (*Interf
 				i.methods = append(i.methods, m)
 			}
 		case *ast.SelectorExpr:
-			return nil, fmt.Errorf("unable to handle embedeed interface from another pkg")
+			// Embedded interface in another package.
+			filePkg, sel := v.X.(*ast.Ident).String(), v.Sel.String()
+			embeddedPkg, ok := p.imports[filePkg]
+			if !ok {
+				return nil, fmt.Errorf("unknown package %s", filePkg)
+			}
+
+			var embeddedIface *Interface
+			var err error
+			embeddedIfaceType := p.importedInterfaces[filePkg][sel]
+			if embeddedIfaceType != nil {
+				embeddedIface, err = p.parseInterface(sel, filePkg, embeddedIfaceType)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				path := embeddedPkg.Path
+				embeddedparser, err := p.createNewParser(path)
+				if err != nil {
+					return nil, err
+				}
+
+				if embeddedIfaceType = embeddedparser.importedInterfaces[path][sel]; embeddedIfaceType == nil {
+					return nil, fmt.Errorf("unknown embedded interface %s.%s", path, sel)
+				}
+				embeddedIface, err = embeddedparser.parseInterface(sel, path, embeddedIfaceType)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			for _, m := range embeddedIface.methods {
+				if i.hasMethod(m) {
+					continue
+				}
+
+				i.methods = append(i.methods, m)
+			}
 		default:
 			return nil, fmt.Errorf("unable to handle method of type %T", f.Type)
 		}
@@ -369,6 +415,43 @@ func (p *parser) parseImports(file *ast.File) error {
 	}
 
 	return nil
+}
+
+func (p *parser) createNewParser(path string) (*parser, error) {
+	log.Printf("building parser for %s", path)
+	n := &parser{
+		imports:            make(map[string]ImportedPackage),
+		importedInterfaces: make(map[string]map[string]*ast.InterfaceType),
+		otherInterfaces:    make(map[string]map[string]*ast.InterfaceType),
+	}
+
+	cfg := &packages.Config{
+		Mode: packages.NeedName |
+			packages.NeedTypesInfo |
+			packages.NeedSyntax |
+			packages.NeedTypes,
+	}
+	pkgs, err := packages.Load(cfg, path)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pkg := range pkgs {
+		for _, file := range pkg.Syntax {
+			if _, ok := n.importedInterfaces[path]; !ok {
+				n.importedInterfaces[path] = make(map[string]*ast.InterfaceType)
+			}
+			for name, it := range getInterfaces(file) {
+				n.importedInterfaces[path][name] = it
+			}
+
+			if err := n.parseImports(file); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return n, nil
 }
 
 func getInterfaces(f *ast.File) map[string]*ast.InterfaceType {

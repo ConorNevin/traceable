@@ -101,6 +101,10 @@ func (g *Generator) Generate(typeName string) {
 		}
 	}
 
+	for _, ip := range g.Interface.imports {
+		g.packageMap[ip.Path] = ip.Name
+	}
+
 	g.printHeader()
 	g.printImports()
 	g.printStruct(typeName)
@@ -177,7 +181,7 @@ func (g *Generator) printMethods(typeName string) {
 		for i, a := range m.args {
 			argName := "a" + strconv.Itoa(i)
 
-			args[i] = a.String()
+			args[i] = a.String(g.packageMap)
 			argNames[i] = argName
 			if a.typ.isVariadic {
 				argNames[i] += "..."
@@ -187,7 +191,7 @@ func (g *Generator) printMethods(typeName string) {
 
 		returns := make([]string, len(m.returns))
 		for i, r := range m.returns {
-			returns[i] = r.String()
+			returns[i] = r.String(g.packageMap)
 		}
 		var returnStr string
 		switch len(returns) {

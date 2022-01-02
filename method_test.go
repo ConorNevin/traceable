@@ -31,8 +31,8 @@ func Test_Method_acceptsContext(t *testing.T) {
 				args: []*Parameter{
 					{
 						typ: &Type{
-							packageName: "context",
-							value:       "Context",
+							pkg:   "context",
+							value: "Context",
 						},
 					},
 				},
@@ -45,14 +45,14 @@ func Test_Method_acceptsContext(t *testing.T) {
 				args: []*Parameter{
 					{
 						typ: &Type{
-							packageName: "context",
-							value:       "Context",
+							pkg:   "context",
+							value: "Context",
 						},
 					},
 					{
 						typ: &Type{
-							packageName: "http",
-							value:       "Request",
+							pkg:   "http",
+							value: "Request",
 						},
 					},
 				},
@@ -86,8 +86,8 @@ func Test_Method_contextArg(t *testing.T) {
 				args: []*Parameter{
 					{
 						typ: &Type{
-							packageName: "context",
-							value:       "Context",
+							pkg:   "context",
+							value: "Context",
 						},
 					},
 				},
@@ -100,14 +100,14 @@ func Test_Method_contextArg(t *testing.T) {
 				args: []*Parameter{
 					{
 						typ: &Type{
-							packageName: "context",
-							value:       "Context",
+							pkg:   "context",
+							value: "Context",
 						},
 					},
 					{
 						typ: &Type{
-							packageName: "http",
-							value:       "Request",
+							pkg:   "http",
+							value: "Request",
 						},
 					},
 				},

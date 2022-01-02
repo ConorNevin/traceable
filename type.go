@@ -11,12 +11,12 @@ type Parameter struct {
 	typ  *Type
 }
 
-func (p *Parameter) String() string {
-	return p.typ.String()
+func (p *Parameter) String(pm map[string]string) string {
+	return p.typ.String(pm)
 }
 
 type Type struct {
-	packageName   string
+	pkg           string
 	value         string
 	isPointer     bool
 	isSlice       bool
@@ -34,16 +34,7 @@ type Type struct {
 	arrayLength int
 }
 
-func (t Type) TypeName() string {
-	var s string
-	if t.packageName != "" {
-		s += t.packageName + "."
-	}
-
-	return s + t.value
-}
-
-func (t Type) String() string {
+func (t Type) String(pm map[string]string) string {
 	var s strings.Builder
 
 	if t.isVariadic {
@@ -52,12 +43,12 @@ func (t Type) String() string {
 	if t.isFunc {
 		args := make([]string, len(t.funcArguments))
 		for i, p := range t.funcArguments {
-			args[i] = p.typ.String()
+			args[i] = p.typ.String(pm)
 		}
 
 		rets := make([]string, len(t.funcReturns))
 		for i, p := range t.funcReturns {
-			rets[i] = p.typ.String()
+			rets[i] = p.typ.String(pm)
 		}
 		retStr := strings.Join(rets, ", ")
 		if len(rets) > 1 {
@@ -68,7 +59,7 @@ func (t Type) String() string {
 		return s.String()
 	}
 	if t.isMap {
-		s.WriteString(fmt.Sprintf("map[%s]%s", t.mapKey.String(), t.mapValue.String()))
+		s.WriteString(fmt.Sprintf("map[%s]%s", t.mapKey.String(pm), t.mapValue.String(pm)))
 		return s.String()
 	}
 	if t.isChan {
@@ -91,8 +82,8 @@ func (t Type) String() string {
 	if t.isPointer {
 		s.WriteString("*")
 	}
-	if t.packageName != "" {
-		s.WriteString(t.packageName + ".")
+	if t.pkg != "" {
+		s.WriteString(pm[t.pkg] + ".")
 	}
 	if t.value != "" {
 		s.WriteString(t.value)
