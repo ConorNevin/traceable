@@ -121,7 +121,7 @@ jobs:
             go test -v -coverprofile=c.out ./... 2>&1 | go-junit-report > report.xml
       - when:
           condition:
-            equal: [1.17, << parameters.version >>]
+            equal: ["1.17", << parameters.version >>]
           steps:
           - run:
               name: coverage/upload
