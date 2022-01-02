@@ -145,6 +145,10 @@ func (g *Generator) printImports() {
 		g.Printf("\"%s\"\n", importPath)
 	}
 	for _, i := range g.Interface.imports {
+		if g.OutputPackagePath == i.Path {
+			continue
+		}
+
 		g.Printf("\"%s\"\n", i.Path)
 	}
 	g.Printf(")\n")
@@ -181,7 +185,7 @@ func (g *Generator) printMethods(typeName string) {
 		for i, a := range m.args {
 			argName := "a" + strconv.Itoa(i)
 
-			args[i] = a.String(g.packageMap)
+			args[i] = a.String(g.packageMap, g.OutputPackagePath)
 			argNames[i] = argName
 			if a.typ.isVariadic {
 				argNames[i] += "..."
@@ -191,7 +195,7 @@ func (g *Generator) printMethods(typeName string) {
 
 		returns := make([]string, len(m.returns))
 		for i, r := range m.returns {
-			returns[i] = r.String(g.packageMap)
+			returns[i] = r.String(g.packageMap, g.OutputPackagePath)
 		}
 		var returnStr string
 		switch len(returns) {

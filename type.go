@@ -11,8 +11,8 @@ type Parameter struct {
 	typ  *Type
 }
 
-func (p *Parameter) String(pm map[string]string) string {
-	return p.typ.String(pm)
+func (p *Parameter) String(pm map[string]string, override string) string {
+	return p.typ.String(pm, override)
 }
 
 type Type struct {
@@ -34,7 +34,7 @@ type Type struct {
 	arrayLength int
 }
 
-func (t Type) String(pm map[string]string) string {
+func (t Type) String(pm map[string]string, override string) string {
 	var s strings.Builder
 
 	if t.isVariadic {
@@ -43,12 +43,12 @@ func (t Type) String(pm map[string]string) string {
 	if t.isFunc {
 		args := make([]string, len(t.funcArguments))
 		for i, p := range t.funcArguments {
-			args[i] = p.typ.String(pm)
+			args[i] = p.typ.String(pm, override)
 		}
 
 		rets := make([]string, len(t.funcReturns))
 		for i, p := range t.funcReturns {
-			rets[i] = p.typ.String(pm)
+			rets[i] = p.typ.String(pm, override)
 		}
 		retStr := strings.Join(rets, ", ")
 		if len(rets) > 1 {
@@ -59,7 +59,7 @@ func (t Type) String(pm map[string]string) string {
 		return s.String()
 	}
 	if t.isMap {
-		s.WriteString(fmt.Sprintf("map[%s]%s", t.mapKey.String(pm), t.mapValue.String(pm)))
+		s.WriteString(fmt.Sprintf("map[%s]%s", t.mapKey.String(pm, override), t.mapValue.String(pm, override)))
 		return s.String()
 	}
 	if t.isChan {
@@ -82,7 +82,7 @@ func (t Type) String(pm map[string]string) string {
 	if t.isPointer {
 		s.WriteString("*")
 	}
-	if t.pkg != "" {
+	if t.pkg != "" && t.pkg != override {
 		s.WriteString(pm[t.pkg] + ".")
 	}
 	if t.value != "" {
