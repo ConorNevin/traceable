@@ -105,10 +105,7 @@ func (g *Generator) Generate(typeName string) {
 		g.packageMap[ip.Path] = ip.Name
 	}
 
-	g.printHeader()
-	g.printImports()
-	g.printStruct(typeName)
-	g.printMethods(typeName)
+	g.generate(typeName)
 }
 
 // Format returns the gofmt-ed contents of the Generator's buffer.
@@ -122,6 +119,13 @@ func (g *Generator) Format() []byte {
 		return g.buf.Bytes()
 	}
 	return src
+}
+
+func (g *Generator) generate(typeName string) {
+	g.printHeader()
+	g.printImports()
+	g.printStruct(typeName)
+	g.printMethods(typeName)
 }
 
 func (g *Generator) printHeader() {
