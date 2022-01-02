@@ -119,10 +119,14 @@ jobs:
           name: go test
           command: |
             go test -v -coverprofile=c.out ./... 2>&1 | go-junit-report > report.xml
-      - run:
-          name: coverage/upload
-          command: |
-            goveralls  -coverprofile=c.out -service=circleci
+      - when:
+          condition:
+            equal: ["1.17", << parameters.version >>]
+          steps:
+          - run:
+              name: coverage/upload
+              command: |
+                goveralls  -coverprofile=c.out -service=circleci
       - store_test_results:
           path: report.xml
       - go-cache-save
