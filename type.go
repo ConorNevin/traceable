@@ -55,7 +55,10 @@ func (t Type) String(pm map[string]string, override string) string {
 			retStr = "(" + retStr + ")"
 		}
 
-		s.WriteString("func(" + strings.Join(args, ",") + ") " + retStr)
+		s.WriteString("func(" + strings.Join(args, ", ") + ")")
+		if retStr != "" {
+			s.WriteString(" " + retStr)
+		}
 		return s.String()
 	}
 	if t.isMap {
