@@ -190,12 +190,23 @@ func (g *Generator) printMethods(typeName string) {
 		argList := make([]string, len(m.args))
 		for i, a := range m.args {
 			argName := "a" + strconv.Itoa(i)
+			argNames[i] = argName
 
 			var b bytes.Buffer
-			types.WriteType(&b, a, g.packageName)
+			if m.isVariadic && i == len(m.returns)-1 {
+				b.WriteString("...")
+				s, ok := a.(*types.Slice)
+				if !ok {
+					log.Fatal("attempting to output variadic argument but was unable to convert the type to a slice")
+				}
+
+				types.WriteType(&b, s.Elem(), g.packageName)
+				argNames[i] += "..."
+			} else {
+				types.WriteType(&b, a, g.packageName)
+			}
 			args[i] = b.String()
 
-			argNames[i] = argName
 			argList[i] = argName + " " + args[i]
 		}
 
