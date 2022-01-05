@@ -2,11 +2,13 @@ package traceable
 
 import (
 	"fmt"
+	"go/types"
 	"regexp"
 	"strings"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
+	"golang.org/x/tools/go/packages"
 )
 
 func Test_Generator_importPath(t *testing.T) {
@@ -82,21 +84,17 @@ func TestGenerator_generate(t *testing.T) {
 				methods: []Method{
 					{
 						name: "Foo",
-						args: []*Parameter{
-							{
-								typ: &Type{pkg: "context", value: "Context"},
-							},
+						args: []types.Type{
+							newContextType(),
 						},
-						returns: []*Parameter{
-							{
-								typ: &Type{value: "error"},
-							},
+						returns: []types.Type{
+							newType("builtin", "error"),
 						},
 					},
 				},
 			},
 			expectedFunctions: map[string]string{
-				"Foo": "func (t *TracedFooBar) Foo(a0 context.Context) error {",
+				"Foo": "func (t *TracedFooBar) Foo(a0 context.Context) builtin.error {",
 			},
 			expectedImports: []string{
 				"context",
@@ -166,4 +164,21 @@ func findImports(t *testing.T, lines []string) []string {
 
 	t.Fatal("unable to find imported block")
 	return nil // unreachable
+}
+
+func newContextType() types.Type {
+	pkgs, _ := packages.Load(&packages.Config{
+		Mode: packages.NeedTypes | packages.NeedImports,
+	}, "context")
+
+	pkg := pkgs[0]
+	return pkg.Types.Scope().Lookup("Context").Type()
+}
+
+func newErrorType() types.Type {
+	pkgs, _ := packages.Load(&packages.Config{
+		Mode: packages.NeedTypes | packages.NeedImports,
+	}, "error")
+	pkg := pkgs[0]
+	return pkg.Types.Scope().Lookup("error").Type()
 }

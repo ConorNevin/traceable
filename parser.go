@@ -53,11 +53,6 @@ func (p *parser) parseInterface(name, pkg string, ti *types.Interface) (*Interfa
 		i.methods[idx] = *m
 	}
 
-	for idx := 0; idx < ti.NumEmbeddeds(); idx++ {
-		e := ti.EmbeddedType(idx)
-		log.Printf("found embedded type with type - %T", e)
-	}
-
 	return &i, nil
 }
 
