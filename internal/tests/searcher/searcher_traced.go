@@ -37,12 +37,12 @@ func (t *TracedSearcher) Search(a0 context.Context, a1 string) error {
 	return t.x.Search(a0, a1)
 }
 
-func (t *TracedSearcher) SearchAll(a0 context.Context, a1 ...string) (chan<- string, error) {
+func (t *TracedSearcher) SearchAll(a0 context.Context, a1 []string) (chan<- string, error) {
 	span, a0 := opentracing.StartSpanFromContext(a0, "Searcher.SearchAll")
 	defer func() {
 		span.Finish()
 	}()
-	return t.x.SearchAll(a0, a1...)
+	return t.x.SearchAll(a0, a1)
 }
 
 func (t *TracedSearcher) StoreAll(a0 context.Context, a1 <-chan string) error {
