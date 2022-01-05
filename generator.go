@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/ast"
+	"go/types"
 	"log"
 	"os"
 	"path/filepath"
@@ -35,6 +36,7 @@ type Package struct {
 	name       string
 	importPath string
 	interfaces []*Interface
+	imports    []*types.Package
 }
 
 func (g *Generator) Printf(format string, args ...interface{}) {
@@ -188,18 +190,31 @@ func (g *Generator) printMethods(typeName string) {
 		argList := make([]string, len(m.args))
 		for i, a := range m.args {
 			argName := "a" + strconv.Itoa(i)
-
-			args[i] = a.String(g.packageMap, g.OutputPackagePath)
 			argNames[i] = argName
-			if a.typ.isVariadic {
+
+			var b bytes.Buffer
+			if m.isVariadic && i == len(m.returns)-1 {
+				b.WriteString("...")
+				s, ok := a.(*types.Slice)
+				if !ok {
+					log.Fatal("attempting to output variadic argument but was unable to convert the type to a slice")
+				}
+
+				types.WriteType(&b, s.Elem(), g.packageName)
 				argNames[i] += "..."
+			} else {
+				types.WriteType(&b, a, g.packageName)
 			}
+			args[i] = b.String()
+
 			argList[i] = argName + " " + args[i]
 		}
 
 		returns := make([]string, len(m.returns))
 		for i, r := range m.returns {
-			returns[i] = r.String(g.packageMap, g.OutputPackagePath)
+			var b bytes.Buffer
+			types.WriteType(&b, r, g.packageName)
+			returns[i] = b.String()
 		}
 		var returnStr string
 		switch len(returns) {
@@ -245,4 +260,11 @@ func getStructName(typeName string) string {
 	}
 
 	return typeName[idx+1:]
+}
+
+func (g *Generator) packageName(pkg *types.Package) string {
+	if pkg == nil || g.OutputPackagePath == pkg.Path() {
+		return ""
+	}
+	return pkg.Name()
 }

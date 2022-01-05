@@ -1,9 +1,11 @@
 package traceable
 
 import (
+	"go/types"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
+	"golang.org/x/tools/go/packages"
 )
 
 func Test_Method_acceptsContext(t *testing.T) {
@@ -15,12 +17,8 @@ func Test_Method_acceptsContext(t *testing.T) {
 		{
 			name: "does not contain context",
 			method: Method{
-				args: []*Parameter{
-					{
-						typ: &Type{
-							value: "string",
-						},
-					},
+				args: []types.Type{
+					newType("net/http", "Request"),
 				},
 			},
 			want: false,
@@ -28,13 +26,8 @@ func Test_Method_acceptsContext(t *testing.T) {
 		{
 			name: "takes context as only argument",
 			method: Method{
-				args: []*Parameter{
-					{
-						typ: &Type{
-							pkg:   "context",
-							value: "Context",
-						},
-					},
+				args: []types.Type{
+					newContextType(),
 				},
 			},
 			want: true,
@@ -42,19 +35,9 @@ func Test_Method_acceptsContext(t *testing.T) {
 		{
 			name: "takes context as one argument",
 			method: Method{
-				args: []*Parameter{
-					{
-						typ: &Type{
-							pkg:   "context",
-							value: "Context",
-						},
-					},
-					{
-						typ: &Type{
-							pkg:   "http",
-							value: "Request",
-						},
-					},
+				args: []types.Type{
+					newContextType(),
+					newType("net/http", "Request"),
 				},
 			},
 			want: true,
@@ -83,13 +66,8 @@ func Test_Method_contextArg(t *testing.T) {
 		{
 			name: "takes context as only argument",
 			method: Method{
-				args: []*Parameter{
-					{
-						typ: &Type{
-							pkg:   "context",
-							value: "Context",
-						},
-					},
+				args: []types.Type{
+					newContextType(),
 				},
 			},
 			want: "a0",
@@ -97,19 +75,9 @@ func Test_Method_contextArg(t *testing.T) {
 		{
 			name: "takes context as one argument",
 			method: Method{
-				args: []*Parameter{
-					{
-						typ: &Type{
-							pkg:   "context",
-							value: "Context",
-						},
-					},
-					{
-						typ: &Type{
-							pkg:   "http",
-							value: "Request",
-						},
-					},
+				args: []types.Type{
+					newContextType(),
+					newType("net/http", "Request"),
 				},
 			},
 			want: "a0",
@@ -122,4 +90,12 @@ func Test_Method_contextArg(t *testing.T) {
 			qt.Check(t, got, qt.Equals, tt.want)
 		})
 	}
+}
+
+func newType(pkg, name string) types.Type {
+	pkgs, _ := packages.Load(&packages.Config{
+		Mode: packages.NeedTypes | packages.NeedImports,
+	}, pkg)
+
+	return pkgs[0].Types.Scope().Lookup(name).Type()
 }
