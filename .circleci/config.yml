@@ -157,11 +157,14 @@ jobs:
             fi
 
   release:
-      docker:
-        - image: cimg/go:1.17
-      steps:
-        - checkout
-        - run: curl -sL https://git.io/goreleaser | bash
+    working_directory: ~/project
+    executor:
+      name: golang
+    steps:
+      - checkout:
+          path: ~/project
+      - go-install-deps
+      - run: curl -sL https://git.io/goreleaser | bash
 
 workflows:
   version: 2
