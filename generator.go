@@ -151,6 +151,9 @@ func (g *Generator) printImports() {
 
 	usedImports := g.Interface.imports()
 	usedImports[openTracingPackagePath] = struct{}{}
+	if g.OutputPackagePath != g.RootPackage {
+		usedImports[g.RootPackage] = struct{}{}
+	}
 
 	g.Printf("import(\n")
 	for importPath := range g.packageMap {
