@@ -10,6 +10,25 @@ orbs:
   go: circleci/go@1.7.0
 
 commands:
+  install-golangci-lint:
+    description: Installs golangci-lint
+    parameters:
+      version:
+        type: string
+    steps:
+      - restore_cache:
+          keys:
+            - v1-golangci-lint-{{ .version }}
+      - run:
+          name: install golangci-lint
+          command: |
+            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s {{ .version }}
+      - save_cache:
+          key: v1-golangci-lint-{{ .version }}
+          name: Saving Tool Cache
+          paths:
+            - ~/.bin
+
   go-install-deps:
     description: Save the go mod & build cache, and install Go tools
     steps:
@@ -76,6 +95,8 @@ jobs:
           path: ~/project
       - run: sudo apt-get update && sudo apt install jq
       - go-install-deps
+      - install-golangci-lint:
+          version: v1.43.0
       - run: go mod verify
       - run: go mod tidy
       - run:
@@ -99,6 +120,7 @@ jobs:
             echo
             exit 1
             fi
+      - run: golangci-lint run ./...
 
   test:
     working_directory: ~/project
