@@ -9,7 +9,10 @@ A Tool that generates an instrumented implementation of an interface that wraps 
 
 ## Installation
 
-`go install github.com/ConorNevin/traceable@latest` to install it into your GOBIN.
+`traceable` requires a working Go installation (Go 1.14+)
+```bash
+go install github.com/ConorNevin/traceable@latest
+```
 
 ## Usage
 
