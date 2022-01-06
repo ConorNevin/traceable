@@ -16,18 +16,10 @@ commands:
       version:
         type: string
     steps:
-      - restore_cache:
-          keys:
-            - v1-golangci-lint-<< parameters.version >>
       - run:
           name: install golangci-lint
           command: |
-            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s << parameters.version >>
-      - save_cache:
-          key: v1-golangci-lint-<< parameters.version >>
-          name: Saving Tool Cache
-          paths:
-            - ~/.bin
+            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $GOPATH/bin << parameters.version >>
 
   go-install-deps:
     description: Save the go mod & build cache, and install Go tools
