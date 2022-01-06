@@ -178,6 +178,8 @@ workflows:
       - test-generation:
           requires:
           - test
+  release:
+    jobs:
       - release:
           # Only run this job on git tag pushes
           filters:
