@@ -18,13 +18,13 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - v1-golangci-lint-{{ .version }}
+            - v1-golangci-lint-<< parameters.version >>
       - run:
           name: install golangci-lint
           command: |
-            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s {{ .version }}
+            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s << parameters.version >>
       - save_cache:
-          key: v1-golangci-lint-{{ .version }}
+          key: v1-golangci-lint-<< parameters.version >>
           name: Saving Tool Cache
           paths:
             - ~/.bin
