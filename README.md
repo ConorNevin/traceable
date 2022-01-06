@@ -20,3 +20,9 @@ go install github.com/ConorNevin/traceable@latest
 
 1. Add a go:generate directive to a file in the same package as the target interface: `go:generate traceable -types IFACE -output traced/iface.go`
 2. Run go generate on the directory
+
+### Download binary from GitHub release
+
+```bash
+    curl -fsSL "https://github.com/ConorNevin/traceable/releases/download/$(VERSION)/traceable_$(uname -s)_$(uname -m)" -o traceable
+```
