@@ -81,6 +81,9 @@ func (g *Generator) addPackage(pkg *packages.Package) {
 		g.packageMap = make(map[string]string)
 	}
 	g.packageMap[pkg.PkgPath] = pkg.Name
+	for _, i := range g.pkgs[pkg.PkgPath].imports {
+		g.packageMap[i.Path()] = i.Name()
+	}
 }
 
 func (g *Generator) GenerateAll(types []string) {
@@ -103,16 +106,20 @@ func (g *Generator) Generate(typeName string) {
 		}
 	}
 
-	for _, ip := range g.Interface.imports {
-		g.packageMap[ip.Path] = ip.Name
-	}
-
 	g.generate(typeName)
 }
 
 // Format returns the gofmt-ed contents of the Generator's buffer.
 func (g *Generator) Format() []byte {
-	src, err := imports.Process("", g.buf.Bytes(), nil)
+	opts := imports.Options{
+		// Since Process can add missing imports, we want to disable it since it
+		// can mask errors with the generation process and import the wrong packages.
+		FormatOnly: true,
+		Comments:   true,
+		TabIndent:  true,
+		TabWidth:   8,
+	}
+	src, err := imports.Process("", g.buf.Bytes(), &opts)
 	if err != nil {
 		// Should never happen, but can arise when developing this code.
 		// The user can compile the output to see the error.
@@ -142,20 +149,20 @@ func (g *Generator) printImports() {
 		return
 	}
 
+	usedImports := g.Interface.imports()
+	usedImports[openTracingPackagePath] = struct{}{}
+	if g.OutputPackagePath != g.RootPackage {
+		usedImports[g.RootPackage] = struct{}{}
+	}
+
 	g.Printf("import(\n")
 	for importPath := range g.packageMap {
 		if g.OutputPackagePath == importPath {
 			continue
 		}
-
-		g.Printf("\"%s\"\n", importPath)
-	}
-	for _, i := range g.Interface.imports {
-		if g.OutputPackagePath == i.Path {
-			continue
+		if _, ok := usedImports[importPath]; ok {
+			g.Printf("\"%s\"\n", importPath)
 		}
-
-		g.Printf("\"%s\"\n", i.Path)
 	}
 	g.Printf(")\n")
 }
