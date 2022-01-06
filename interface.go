@@ -1,9 +1,8 @@
 package traceable
 
 type Interface struct {
-	name       string
-	importPath string
-	methods    []Method
+	name    string
+	methods []Method
 }
 
 func (i *Interface) hasMethod(m Method) bool {

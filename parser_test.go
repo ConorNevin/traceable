@@ -73,11 +73,3 @@ func Test_parser_parsePackage(t *testing.T) {
 	c.Check(i.methods[0].returns[0].String(), qt.Equals, "float64")
 	c.Check(i.methods[0].returns[1].String(), qt.Equals, "error")
 }
-
-func getPackageMap(p *parser) map[string]string {
-	pm := make(map[string]string, len(p.imports))
-	for _, ip := range p.imports {
-		pm[ip.Path] = ip.Name
-	}
-	return pm
-}

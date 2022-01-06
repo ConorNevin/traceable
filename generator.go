@@ -25,7 +25,6 @@ type Generator struct {
 	buf        bytes.Buffer
 	pkgs       map[string]*Package
 	packageMap map[string]string
-	parser     *parser
 
 	RootPackage       string
 	OutputPackagePath string

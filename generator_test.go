@@ -176,9 +176,5 @@ func newContextType() types.Type {
 }
 
 func newErrorType() types.Type {
-	pkgs, _ := packages.Load(&packages.Config{
-		Mode: packages.NeedTypes | packages.NeedImports,
-	}, "error")
-	pkg := pkgs[0]
-	return pkg.Types.Scope().Lookup("error").Type()
+	return types.Universe.Lookup("error").Type()
 }

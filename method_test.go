@@ -132,6 +132,7 @@ func Test_Method_imports(t *testing.T) {
 			method: Method{
 				returns: []types.Type{
 					newContextType(),
+					newErrorType(),
 				},
 			},
 			want: []string{"context"},
