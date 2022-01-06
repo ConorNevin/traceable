@@ -7,8 +7,13 @@
 
 A Tool that generates an instrumented implementation of an interface that wraps functions calls with an OpenTracing span.
 
-## How it works
-
 ## Installation
 
+`go install github.com/ConorNevin/traceable@latest` to install it into your GOBIN.
+
 ## Usage
+
+### Using Go Generate
+
+1. Add a go:generate directive to a file in the same package as the target interface: `go:generate traceable -types IFACE -output traced/iface.go`
+2. Run go generate on the directory

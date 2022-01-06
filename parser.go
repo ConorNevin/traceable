@@ -21,6 +21,9 @@ func (p *parser) parsePackage(pkg *packages.Package) (*Package, error) {
 	scope := pkg.Types.Scope()
 	for _, name := range scope.Names() {
 		o := scope.Lookup(name)
+		if o == nil {
+			continue
+		}
 
 		switch ti := o.Type().Underlying().(type) {
 		case *types.Interface:
@@ -31,6 +34,8 @@ func (p *parser) parsePackage(pkg *packages.Package) (*Package, error) {
 			}
 
 			interfaces = append(interfaces, i)
+		default:
+			log.Printf("skipping %s", name)
 		}
 	}
 

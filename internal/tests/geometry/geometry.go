@@ -10,6 +10,7 @@ import (
 
 type Geometry interface {
 	Area(context.Context) (float64, error)
+	Height() float64
 }
 
 type Circle struct {
@@ -22,4 +23,8 @@ func (c *Circle) Area(_ context.Context) (float64, error) {
 	}
 
 	return math.Pi * c.radius * c.radius, nil
+}
+
+func (c *Circle) Height() float64 {
+	return c.radius * 2
 }

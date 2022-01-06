@@ -20,3 +20,7 @@ func (t *TracedGeometry) Area(a0 context.Context) (float64, error) {
 	}()
 	return t.x.Area(a0)
 }
+
+func (t *TracedGeometry) Height() float64 {
+	return t.x.Height()
+}

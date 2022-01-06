@@ -54,16 +54,21 @@ func Test_parser_parsePackage(t *testing.T) {
 	c.Assert(pkgs, qt.HasLen, 1)
 
 	pkg, err := pp.parsePackage(pkgs[0])
+	t.Log("parsed")
 	c.Assert(err, qt.IsNil)
 	c.Check(pkg.name, qt.Equals, "geometry")
 	c.Assert(pkg.interfaces, qt.HasLen, 1)
 
+	t.Log("here")
 	i := pkg.interfaces[0]
 	c.Check(i.name, qt.Equals, "Geometry")
-	c.Assert(i.methods, qt.HasLen, 1)
+	c.Assert(i.methods, qt.HasLen, 2)
+	t.Log("here again")
 	c.Check(i.methods[0].name, qt.Equals, "Area")
 	c.Assert(i.methods[0].args, qt.HasLen, 1)
+	t.Log("starting...")
 	c.Check(i.methods[0].args[0].String(), qt.Equals, "context.Context")
+	t.Log("here")
 	c.Assert(i.methods[0].returns, qt.HasLen, 2)
 	c.Check(i.methods[0].returns[0].String(), qt.Equals, "float64")
 	c.Check(i.methods[0].returns[1].String(), qt.Equals, "error")
