@@ -53,34 +53,37 @@ func (m Method) imports() map[string]struct{} {
 }
 
 func importsOf(t types.Type) map[string]struct{} {
-	imports := make(map[string]struct{})
-
 	switch u := t.(type) {
 	case *types.Pointer:
-		imports = mergeMaps(imports, importsOf(u.Elem()))
+		return importsOf(u.Elem())
 	case *types.Map:
-		imports = mergeMaps(imports, importsOf(u.Key()), importsOf(u.Elem()))
+		return mergeMaps(importsOf(u.Key()), importsOf(u.Elem()))
 	case *types.Array:
-		imports = mergeMaps(imports, importsOf(u.Elem()))
+		return importsOf(u.Elem())
 	case *types.Slice:
-		imports = mergeMaps(imports, importsOf(u.Elem()))
+		return importsOf(u.Elem())
 	case *types.Chan:
-		imports = mergeMaps(imports, importsOf(u.Elem()))
+		return importsOf(u.Elem())
 	case *types.Signature:
+		imports := make(map[string]struct{})
 		for i := 0; i < u.Params().Len(); i++ {
-			imports[u.Params().At(i).Pkg().Path()] = struct{}{}
+			imports = mergeMaps(imports, importsOf(u.Params().At(i).Type()))
 		}
 		for i := 0; i < u.Results().Len(); i++ {
-			imports[u.Results().At(i).Pkg().Path()] = struct{}{}
+			imports = mergeMaps(imports, importsOf(u.Results().At(i).Type()))
 		}
-	case *types.Named:
-		pkg := u.Obj().Pkg()
-		if pkg != nil {
-			imports[pkg.Path()] = struct{}{}
-		}
-	}
 
-	return imports
+		return imports
+	case *types.Named:
+		if pkg := u.Obj().Pkg(); pkg != nil {
+			return map[string]struct{}{
+				pkg.Path(): struct{}{},
+			}
+		}
+		return nil
+	default:
+		return nil
+	}
 }
 
 func isContextType(t types.Type) bool {
