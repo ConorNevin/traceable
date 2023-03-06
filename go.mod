@@ -7,6 +7,6 @@ require (
 	github.com/jstemmer/go-junit-report v1.0.0
 	github.com/mattn/goveralls v0.0.11
 	github.com/opentracing/opentracing-go v1.2.0
-	golang.org/x/mod v0.7.0
+	golang.org/x/mod v0.9.0
 	golang.org/x/tools v0.3.0
 )
